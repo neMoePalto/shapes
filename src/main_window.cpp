@@ -3,144 +3,116 @@
 #include <QCloseEvent>
 #include <QComboBox>
 #include <QDockWidget>
+#include <QDoubleSpinBox>
 #include <QGridLayout>
-#include <QLineEdit>
+#include <QLabel>
 #include <QMenuBar>
 #include <QMdiArea>
-#include <QPushButton>
-#include <QSpinBox>
-#include <QTextEdit> // temp
 
 #include "shape_widget.h"
 
 
 main_window::main_window(QWidget *parent)
   : QMainWindow(parent) {
-//  te_temp_ = new QTextEdit();
-
-  mdi_area_ = new QMdiArea();
-  // Проверить на большом объекте:
+  mdi_area_ = new QMdiArea(this);
+  setCentralWidget(mdi_area_);
   mdi_area_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
   mdi_area_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-  setCentralWidget(mdi_area_);
 
-//  connect(mdiArea, &QMdiArea::subWindowActivated,
-//          this, &MainWindow::updateMenus);
+  view_menu_ = menuBar()->addMenu("Меню");
+  menuBar()->setFont(arial_13_);
+  view_menu_->setFont(arial_13_);
 
-  view_menu_ = menuBar()->addMenu("Вид");
+  open_action_ = new QAction("Открыть виджет OpenGL", this);
+  open_action_->setShortcut(QKeySequence::New);
+  connect(open_action_, &QAction::triggered, this, &main_window::create_opengl_widget);
+  view_menu_->addAction(open_action_);
 
   create_dockable_toolbar();
-
-  create_mdi_child(true);
-  create_mdi_child(false);
+  create_mdi_child();
 
   setMinimumSize(800, 600);
-}
-
-
-main_window::~main_window() {
 }
 
 
 void main_window::closeEvent(QCloseEvent* event) {
   mdi_area_->closeAllSubWindows();
   if (mdi_area_->currentSubWindow()) {
-      event->ignore();
+    event->ignore();
   } else {
-//      writeSettings();
-      event->accept();
+    event->accept();
   }
 }
 
 
 void main_window::create_dockable_toolbar() {
   QDockWidget *dockable_panel = new QDockWidget("Настройки объекта", this);
+  dockable_panel->setFixedSize(200, 200);
   dockable_panel->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
 
-  QFont arial_12("Arial", 12);
-  QFont arial_14("Arial", 14);
-  QFont monosp_12("Calibri", 12);
-
   QWidget* w = new QWidget(dockable_panel);
-  w->setFont(arial_12);
-  w->setFixedSize(250, 350);
   auto* grid = new QGridLayout(w);
   w->setLayout(grid);
+  w->setFont(arial_13_);
 
+  auto* lb_shape_type = new QLabel ("Тип фигуры", w);
+  grid->addWidget(lb_shape_type,    0, 0,   1, 1); // (obj, row, colmn,    rowSpan, colmnSpan)
 
   cb_shapes_ = new QComboBox(w);
+  cb_shapes_->addItem("Пирамида");
   cb_shapes_->addItem("Куб");
   cb_shapes_->addItem("Шар");
-  cb_shapes_->addItem("Пирамида");
-//  shapes_->setMinimumHeight(90);
-//  shapes_->setFont(arial_12);
-  grid->addWidget(cb_shapes_,          0, 0,   1, 1);  // (obj, row, colmn,    rowSpan, colmnSpan)
+  grid->addWidget(cb_shapes_,       1, 0,   1, 1);
 
+  auto* lb_shape_size = new QLabel ("Размер фигуры", w);
+  grid->addWidget(lb_shape_size,    2, 0,   1, 1);
 
-
-  le_shape_width_ = new QLineEdit(w);
-//  shape_width_->setFont(arial_12);
-  le_shape_width_->setMinimumHeight(30);
-  grid->addWidget(le_shape_width_,    1, 0,   1, 1);
-  pb_apply_width_ = new QPushButton("Применить", w);
-  pb_apply_width_->setMinimumSize(100, 30);
-  grid->addWidget(pb_apply_width_,    1, 1,   1, 1);
-  sb_shape_width2_ = new QSpinBox(w);
-  grid->addWidget(sb_shape_width2_,   2, 0,   1, 1);
+  sb_shape_size_ = new QDoubleSpinBox(w);
+  sb_shape_size_->setValue(default_shape_width_);
+  sb_shape_size_->setSingleStep(0.1);
+  grid->addWidget(sb_shape_size_,   3, 0,   1, 1);
   dockable_panel->setWidget(w);
 
-
-//  customerList = new QListWidget(dock);
-//  customerList->addItems({"John Doe, Ambleton", "Jane Doe, Memorabilia"});
-//  dock->setWidget(customerList);
   addDockWidget(Qt::RightDockWidgetArea, dockable_panel);
   view_menu_->addAction(dockable_panel->toggleViewAction());
-
-
-//  connect(customerList, &QListWidget::currentTextChanged,
-//          this, &MainWindow::insertCustomer);
-//  connect(paragraphsList, &QListWidget::currentTextChanged,
-  //          this, &MainWindow::addParagraph);
 }
 
 
-QWidget* main_window::create_mdi_child(bool is_opengl_temp_fl) {
-  QWidget* child = nullptr;
-  if (is_opengl_temp_fl) {
-    child = new shape_widget();
-    connect(cb_shapes_, &QComboBox::currentIndexChanged,
-            static_cast<shape_widget*>(child), &shape_widget::change_shape);
-  } else {
-    child = new mdi_child_temp();
-  }
-
-
-
+mdi_child_temp* main_window::create_mdi_child() {
+  auto* child = new mdi_child_temp();
   child->setAttribute(Qt::WA_DeleteOnClose);
   child->setMinimumSize(300, 400);
   mdi_area_->addSubWindow(child);
+
   return child;
 }
 
 
-//bool close_event_filter::eventFilter(QObject *obj, QEvent *event) {
-//  if (event->type() == QEvent::Close || event->type() == QEvent::Quit) {
-//    QKeyEvent *close_event = static_cast<QKeyEvent *>(event);
-//    qDebug("Ignore event %d", close_event->type());
-//    return true;
-//  } else {
-//    // standard event processing
-//    qDebug() << event->type();
-//    return QObject::eventFilter(obj, event);
-//  }
-//}
+void main_window::create_opengl_widget() {
+  if (shape_widget_ == nullptr) {
+    shape_widget_ = new shape_widget(shape_type::pyramid, sb_shape_size_->value());
+
+    connect(cb_shapes_, &QComboBox::currentIndexChanged, [this](int index) {
+      shape_widget_->change_shape(index);
+      sb_shape_size_->setValue(default_shape_width_);
+    });
+    connect(sb_shape_size_, &QDoubleSpinBox::valueChanged,
+            shape_widget_, &shape_widget::change_size);
+    connect(shape_widget_, &shape_widget::closed, [this]() {
+//      shape_widget_->deleteLater();
+      shape_widget_ = nullptr;
+    });
+
+    shape_widget_->setAttribute(Qt::WA_DeleteOnClose);
+    shape_widget_->setMinimumSize(400, 400);
+    mdi_area_->addSubWindow(shape_widget_);
+    shape_widget_->show();
+  }
+}
 
 
 mdi_child_temp::mdi_child_temp() { // temp
 //  setAttribute(Qt::WA_DeleteOnClose);
-
-////  auto* close_ev_filter = new close_event_filter();
-////  installEventFilter(close_ev_filter);
 //  setMinimumSize(300, 400);
 }
 

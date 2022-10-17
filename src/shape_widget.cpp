@@ -1,35 +1,45 @@
 #include "shape_widget.h"
 
-#include <cassert>
 #include <memory>
 
 #include <QOpenGLFunctions>
 #include <QMouseEvent>
 
 
-shape_widget::shape_widget(QWidget *parent /*= nullptr*/)
-  : QOpenGLWidget(parent)
-  , shapes_{std::make_shared<pyramid_real>(),
-            std::make_shared<cube>()} {
+shape_widget::shape_widget(shape_type default_type, GLfloat default_size, QWidget* p /*= nullptr*/)
+  : QOpenGLWidget(p)
+  , shapes_{std::make_shared<pyramid>(),
+            std::make_shared<cube>(),
+            std::make_shared<sphere>()}
+  , default_size_(default_size) {
+  Q_ASSERT(static_cast<std::size_t>(default_type) < shapes_.size());
 
-  curr_shape_ = &shapes_.at(0);
+  curr_shape_ = &shapes_.at(static_cast<std::size_t>(default_type));
 }
 
 
-//shape_widget::~shape_widget() {
-//  for (const auto* s : shapes_) {
-//    delete s;
-//  }
-//}
+void shape_widget::change_shape(int index)  {
+  Q_ASSERT(static_cast<std::size_t>(index) < shapes_.size());
+
+  curr_shape_ = &shapes_.at(index);
+  points_ = curr_shape_->get()->create(default_size_);
+  update();
+}
+
+
+void shape_widget::change_size(double size) {
+  points_ = curr_shape_->get()->create(size);
+  update();
+}
 
 
 void shape_widget::initializeGL() {
   QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-  f->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  f->glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
   f->glEnable(GL_DEPTH_TEST);
   glShadeModel(GL_FLAT);
-  points_ = curr_shape_->get()->create(1.2f);
+  points_ = curr_shape_->get()->create(default_size_);
 }
 
 
@@ -56,7 +66,6 @@ void shape_widget::paintGL() {
 
 
 void shape_widget::mousePressEvent(QMouseEvent *event) {
-  qDebug() << "mousePressEvent()";
   capture_point_ = event->pos();
 }
 
@@ -69,11 +78,6 @@ void shape_widget::mouseMoveEvent(QMouseEvent *event) {
 }
 
 
-void shape_widget::change_shape(int index)  {
-  qDebug() << "index = " << index;
-  assert(static_cast<std::size_t>(index) < shapes_.size());
-  curr_shape_ = &shapes_.at(index);
-  points_ = curr_shape_->get()->create(1.2f);
-//  initializeGL();
-  update();
+void shape_widget::closeEvent(QCloseEvent* /*event*/) {
+  emit closed();
 }
