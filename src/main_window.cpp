@@ -29,7 +29,6 @@ main_window::main_window(QWidget *parent)
   view_menu_->addAction(open_action_);
 
   create_dockable_toolbar();
-  create_mdi_child();
 
   setMinimumSize(800, 600);
 }
@@ -78,16 +77,6 @@ void main_window::create_dockable_toolbar() {
 }
 
 
-mdi_child_temp* main_window::create_mdi_child() {
-  auto* child = new mdi_child_temp();
-  child->setAttribute(Qt::WA_DeleteOnClose);
-  child->setMinimumSize(300, 400);
-  mdi_area_->addSubWindow(child);
-
-  return child;
-}
-
-
 void main_window::create_opengl_widget() {
   if (shape_widget_ == nullptr) {
     shape_widget_ = new shape_widget(shape_type::pyramid, sb_shape_size_->value());
@@ -109,10 +98,3 @@ void main_window::create_opengl_widget() {
     shape_widget_->show();
   }
 }
-
-
-mdi_child_temp::mdi_child_temp() { // temp
-//  setAttribute(Qt::WA_DeleteOnClose);
-//  setMinimumSize(300, 400);
-}
-
